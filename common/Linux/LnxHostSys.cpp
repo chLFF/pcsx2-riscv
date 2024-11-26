@@ -287,6 +287,22 @@ void HostSys::FlushInstructionCache(void* address, u32 size)
 
 #endif // _M_ARM64
 
+#ifdef _M_RISCV64
+
+[[maybe_unused]] static bool IsStoreInstruction(const void* ptr)
+{
+	u32 bits;
+	std::memcpy(&bits, ptr, sizeof(bits));
+
+	// Opcode of instrution is 0100011 (SW|SH|SB).
+	if ((bits & 0b1111111) == 0b0100011)
+		return true;
+	else
+		return false;
+}
+
+#endif // _M_RISCV64
+
 namespace PageFaultHandler
 {
 	static void SignalHandler(int sig, siginfo_t* info, void* ctx);
@@ -302,6 +318,9 @@ void PageFaultHandler::SignalHandler(int sig, siginfo_t* info, void* ctx)
 	const bool is_write = (static_cast<ucontext_t*>(ctx)->uc_mcontext.gregs[REG_ERR] & 2) != 0;
 #elif defined(_M_ARM64)
 	void* const exception_pc = reinterpret_cast<void*>(static_cast<ucontext_t*>(ctx)->uc_mcontext.pc);
+	const bool is_write = IsStoreInstruction(exception_pc);
+#elif defined(_M_RISCV64)
+	void* const exception_pc = reinterpret_cast<void*>(static_cast<ucontext_t*>(ctx)->uc_mcontext.__gregs[REG_PC]);
 	const bool is_write = IsStoreInstruction(exception_pc);
 #endif
 
