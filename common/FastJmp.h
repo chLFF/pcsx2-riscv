@@ -5,7 +5,9 @@
 #include "Pcsx2Defs.h"
 #include <cstdint>
 #include <cstddef>
+#include <setjmp.h>
 
+#if defined(_WIN32) || defined(_M_ARM64)
 struct fastjmp_buf
 {
 #if defined(_WIN32)
@@ -18,6 +20,11 @@ struct fastjmp_buf
 
 	alignas(16) std::uint8_t buf[BUF_SIZE];
 };
+#endif
+
+#if defined(_M_RISCV64)
+typedef __jmp_buf_tag fastjmp_buf;
+#endif
 
 extern "C" {
 int fastjmp_set(fastjmp_buf* buf);

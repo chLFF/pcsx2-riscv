@@ -4,7 +4,7 @@
 #include "FastJmp.h"
 
 // Win32 uses Fastjmp.asm, because MSVC doesn't support inline asm.
-#if !defined(_WIN32) || defined(_M_ARM64)
+#if !defined(_WIN32) || defined(_M_ARM64) || defined(_M_RISCV64)
 
 #if defined(__APPLE__)
 #define PREFIX "_"
@@ -69,7 +69,7 @@ asm(
 	mov w0, wzr
 	br x30
 )"
-".align 16\n"
+	".align 16\n"
 "\t" PREFIX "fastjmp_jmp:" R"(
 	ldp x16, x30, [x0]
 	mov sp, x16
@@ -86,6 +86,20 @@ asm(
 	mov w0, w1
 	br x30
 )");
+
+#elif defined(_M_RISCV64)
+
+// Use setjmp and longjmp, don't know asm implementation.
+// Hope it works.
+int fastjmp_set(fastjmp_buf* buf)
+{
+	return _setjmp(buf);
+}
+
+void fastjmp_jmp(const fastjmp_buf* buf, int ret)
+{
+	_longjmp(buf, ret)
+}
 
 #endif
 
