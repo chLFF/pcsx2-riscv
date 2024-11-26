@@ -37,6 +37,8 @@
 
 #elif defined(_M_ARM64)
 #include <arm_neon.h>
+#elif defined(_M_RISCV64)
+#include <riscv_vector.h>
 #endif
 
 #ifdef __APPLE__

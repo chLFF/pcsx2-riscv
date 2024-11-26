@@ -188,6 +188,92 @@ using r128 = uint32x4_t;
 	return ret;
 }
 
+#elif defined(_M_RISCV64)
+
+using r128 = vuint32mf2_t;
+
+[[maybe_unused]] __fi static void CopyQWC(void* dest, const void* src)
+{
+	__riscv_vse8_v_u8mf2(static_cast<u8*>(dest), __riscv_vle8_v_u8mf2(static_cast<const u8*>(src), 16), 16);
+}
+
+[[maybe_unused]] __fi static void ZeroQWC(void* dest)
+{
+	__riscv_vse8_v_u8mf2(static_cast<u8*>(dest), __riscv_vmv_v_x_u8mf2(0, 16), 16);
+}
+
+[[maybe_unused]] __fi static void ZeroQWC(u128& dest)
+{
+	__riscv_vse8_v_u8mf2(&dest._u8[0], __riscv_vmv_v_x_u8mf2(0, 16), 16);
+}
+
+[[maybe_unused]] __fi static r128 r128_load(const void* ptr)
+{
+	return __riscv_vle32_v_u32mf2(reinterpret_cast<const uint32_t*>(ptr), 4);
+}
+
+[[maybe_unused]] __fi static void r128_store(void* ptr, r128 value)
+{
+	__riscv_vse32_v_u32mf2(reinterpret_cast<uint32_t*>(ptr), value, 4);
+}
+
+[[maybe_unused]] __fi static void r128_store_unaligned(void* ptr, r128 value)
+{
+	__riscv_vse32_v_u32mf2(reinterpret_cast<uint32_t*>(ptr), value, 4);
+}
+
+[[maybe_unused]] __fi static r128 r128_zero()
+{
+	return __riscv_vmv_v_x_u32mf2(0, 4);
+}
+
+/// Expects that r64 came from r64-handling code, and not from a recompiler or something
+[[maybe_unused]] __fi static r128 r128_from_u64_dup(u64 val)
+{
+	u128 u = {val, val};
+	return __riscv_vle32_v_u32mf2(reinterpret_cast<const uint32_t*>(u._u32), 4);
+}
+[[maybe_unused]] __fi static r128 r128_from_u64_zext(u64 val)
+{
+	u128 u = {val, 0};
+	return __riscv_vle32_v_u32mf2(reinterpret_cast<const uint32_t*>(u._u32), 4);
+}
+
+[[maybe_unused]] __fi static r128 r128_from_u32_dup(u32 val)
+{
+	return __riscv_vmv_v_x_u32mf2(val, 4);
+}
+
+[[maybe_unused]] __fi static r128 r128_from_u32x4(u32 lo0, u32 lo1, u32 hi0, u32 hi1)
+{
+	const u32 values[4] = {lo0, lo1, hi0, hi1};
+	return __riscv_vle32_v_u32mf2(values, 4);
+}
+
+[[maybe_unused]] __fi static r128 r128_from_u128(const u128& u)
+{
+	return __riscv_vle32_v_u32mf2(reinterpret_cast<const uint32_t*>(u._u32), 4);
+}
+
+[[maybe_unused]] __fi static u32 r128_to_u32(r128 val)
+{
+	return __riscv_vmv_x_s_u32mf2_u32(val);
+}
+
+[[maybe_unused]] __fi static u64 r128_to_u64(r128 val)
+{
+	u32 ret[2];
+	__riscv_vse32_v_u32mf2(ret, val, 2);
+	return *reinterpret_cast<uint64_t*>(ret);
+}
+
+[[maybe_unused]] __fi static u128 r128_to_u128(r128 val)
+{
+	alignas(16) u128 ret;
+	__riscv_vse32_v_u32mf2(ret._u32, val, 4);
+	return ret;
+}
+
 #else
 
 #error Unknown architecture.
