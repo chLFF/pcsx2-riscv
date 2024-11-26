@@ -189,6 +189,109 @@ struct FPControlRegister
 
 	__fi constexpr bool operator==(const FPControlRegister& rhs) const { return bitmask == rhs.bitmask; }
 	__fi constexpr bool operator!=(const FPControlRegister& rhs) const { return bitmask != rhs.bitmask; }
+
+#elif defined(_M_RISCV64)
+	u32 bitmask;
+
+	static constexpr u32 RMODE_SHIFT = 5;
+	// RISCV FCSR uses 3btis RMODE, but we only use 2bits.
+	static constexpr u32 RMODE_MASK = 3u;
+	static constexpr u32 RMODE_BITS = (RMODE_MASK << RMODE_SHIFT);
+	static constexpr u32 EXCEPTION_MASK = (7u << 2);
+// FRSCR
+// FSCSR can do
+	__fi static FPControlRegister GetCurrent()
+	{
+		u32 value;
+		asm volatile("\tcsrr %0, FPCR\n"
+					 : "=r"(value));
+		return FPControlRegister{value};
+	}
+
+	__fi static void SetCurrent(FPControlRegister value)
+	{
+		asm volatile("\tcsrw FCSR, %0\n" ::"r"(value));
+	}
+
+	__fi static constexpr FPControlRegister GetDefault()
+	{
+		// 0x0 - all exceptions masked, nearest rounding
+		return FPControlRegister{0x0};
+	}
+
+	__fi constexpr FPControlRegister& EnableExceptions()
+	{
+		bitmask |= EXCEPTION_MASK;
+		return *this;
+	}
+
+	__fi constexpr FPControlRegister& DisableExceptions()
+	{
+		bitmask &= ~EXCEPTION_MASK;
+		return *this;
+	}
+
+	__fi constexpr FPRoundMode GetRoundMode() const
+	{
+		// RISCV RMODE:
+		// 00 RNE, Round to Nearest, ties to Even
+		// 01 RTZ, Round towards Zero
+		// 10 RDN, Round Down (towards Negative infinity)
+		// 11 RUP, Round Up (towards Positive infinity)
+		const u64 RMode = (bitmask >> RMODE_SHIFT) & RMODE_MASK;
+		switch (RMode)
+		{
+			case 0b00:
+				return FPRoundMode::Nearest;
+			case 0b01:
+				return FPRoundMode::ChopZero;
+			case 0b10:
+				return FPRoundMode::NegativeInfinity;
+			case 0b11:
+				return FPRoundMode::PositiveInfinity;
+		}
+	}
+
+	__fi constexpr FPControlRegister& SetRoundMode(FPRoundMode mode)
+	{
+		switch (mode){
+			case FPRoundMode::Nearest:
+				const u64 RMode = static_cast<u64>(0b00);
+			case FPRoundMode::NegativeInfinity:
+				const u64 RMode = static_cast<u64>(0b10);
+			case FPRoundMode::PositiveInfinity:
+				const u64 RMode = static_cast<u64>(0b11);
+			case FPRoundMode::ChopZero:
+				const u64 RMode = static_cast<u64>(0b01);
+		}
+		bitmask = (bitmask & ~RMODE_BITS) | ((RMode & RMODE_MASK) << RMODE_SHIFT);
+		return *this;
+	}
+
+	__fi constexpr bool GetDenormalsAreZero() const
+	{
+		// RISCV FCSR do not have FZ_BIT. Set to 1 as default.
+		return 1;
+	}
+
+	__fi constexpr FPControlRegister SetDenormalsAreZero(bool daz)
+	{
+		return *this;
+	}
+
+	__fi constexpr bool GetFlushToZero() const
+	{
+		// See note in GetDenormalsAreZero().
+		return 1;
+	}
+
+	__fi constexpr FPControlRegister SetFlushToZero(bool ftz)
+	{
+		return *this;
+	}
+
+	__fi constexpr bool operator==(const FPControlRegister& rhs) const { return bitmask == rhs.bitmask; }
+	__fi constexpr bool operator!=(const FPControlRegister& rhs) const { return bitmask != rhs.bitmask; }
 #else
 #error Unknown architecture.
 #endif
