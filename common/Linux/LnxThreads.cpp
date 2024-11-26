@@ -45,6 +45,8 @@ __forceinline void Threading::SpinWait()
 	__asm__("pause");
 #elif defined(_M_ARM64)
 	__asm__ __volatile__("isb");
+#elif defined(_M_RISCV64)
+	__asm__ __volatile__("FENCE");
 #endif
 }
 

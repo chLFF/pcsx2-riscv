@@ -36,6 +36,15 @@ static void MultiPause()
 	__asm__ __volatile__("isb");
 	__asm__ __volatile__("isb");
 	__asm__ __volatile__("isb");
+#elif defined(_M_RISCV64)
+	__asm__ __volatile__("FENCE");
+	__asm__ __volatile__("FENCE");
+	__asm__ __volatile__("FENCE");
+	__asm__ __volatile__("FENCE");
+	__asm__ __volatile__("FENCE");
+	__asm__ __volatile__("FENCE");
+	__asm__ __volatile__("FENCE");
+	__asm__ __volatile__("FENCE");
 #else
 #error Unknown architecture.
 #endif
