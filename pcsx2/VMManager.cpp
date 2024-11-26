@@ -63,6 +63,8 @@
 #include <mutex>
 #include <sstream>
 
+#include <stdio.h>
+
 #ifdef _WIN32
 #include "common/RedtapeWindows.h"
 #include <objbase.h>
@@ -235,6 +237,18 @@ bool VMManager::PerformEarlyHardwareChecks(const char** error)
 		*error = "Page size mismatch. This build cannot run on your system.\n\n" COMMON_DOWNLOAD_MESSAGE;
 		return false;
 	}
+#elif defined(_M_RISCV64)
+	// Check page size. If it doesn't match, it is a fatal error.
+	const size_t runtime_host_page_size = HostSys::GetRuntimePageSize();
+	if (__pagesize != runtime_host_page_size)
+	{
+		char err_message[128];
+		snprintf(err_message, sizeof(err_message), "Page size mismatch. runtime_host_page_size is %d, expecting %d. This build cannot run on your system.\n\n", runtime_cache_line_size, __pagesize);
+		*error = (const char*)err_message;
+
+		return false;
+	}
+
 #endif
 
 #undef COMMON_DOWNLOAD_MESSAGE
